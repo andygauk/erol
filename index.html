@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Erol — screenshot issue logger</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0f1115">
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b;
+    --border:#2a2f3a; --text:#e8ebf0; --muted:#9aa3b2;
+    --accent:#4f8cff; --accent-h:#6ba0ff; --gold:#f4c95d; --pink:#ff3868;
+    --green:#3ddc97; --red:#ff5f6d;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.45;
+  }
+  header{
+    position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:14px;
+    padding:12px 20px; background:rgba(15,17,21,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border); flex-wrap:wrap;
+  }
+  .brand{font-weight:800; font-size:20px; letter-spacing:.5px}
+  .brand-logo{display:block; height:26px; width:auto; object-fit:contain}
+  .brand b{color:var(--gold)}
+  .sub{color:var(--muted); font-size:13px; font-weight:600}
+  .spacer{flex:1}
+  .pill{
+    font-size:12px; color:var(--muted); background:var(--panel2);
+    border:1px solid var(--border); padding:5px 10px; border-radius:999px;
+    max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .btn-clear{
+    font-size:12px; font-weight:600; background:transparent; color:var(--muted);
+    border:1px solid var(--border); padding:5px 11px; border-radius:999px;
+  }
+  .btn-clear:hover{color:var(--red); border-color:var(--red); background:rgba(255,95,109,.08)}
+  main{max-width:1080px; margin:0 auto; padding:20px 20px 160px}
+  .empty{
+    text-align:center; padding:70px 20px; color:var(--muted);
+    border:2px dashed var(--border); border-radius:14px; margin-top:8px;
+  }
+  .empty .big{font-size:44px; margin-bottom:10px}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:18px; margin-top:16px}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    overflow:hidden; display:flex; flex-direction:column; position:relative;
+    transition:box-shadow .15s, border-color .15s;
+  }
+  .card.new{border-color:var(--gold); box-shadow:0 0 0 3px rgba(244,201,93,.12)}
+  .card.filled{border-color:rgba(61,220,151,.5)}
+  .card .badge{
+    position:absolute; top:10px; right:10px; z-index:3; font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:999px; background:rgba(15,17,21,.85);
+    border:1px solid var(--border);
+  }
+  .badge.new{color:var(--gold); border-color:var(--gold)}
+  .badge.paste{color:var(--pink); border-color:var(--pink)}
+  .badge.done{color:var(--green); border-color:var(--green)}
+  .imgwrap{position:relative; background:#000; aspect-ratio:16/10; cursor:zoom-in}
+  .imgwrap img{width:100%; height:100%; object-fit:contain; display:block}
+  .imgwrap .zoom{
+    position:absolute; inset:0; display:none; justify-content:center; align-items:center;
+    background:rgba(0,0,0,.55); color:#fff; font-size:13px; font-weight:700; letter-spacing:.5px;
+  }
+  .imgwrap:hover .zoom{display:flex}
+  .fname{
+    font-size:12px; color:var(--muted); padding:8px 12px 2px; word-break:break-all;
+    font-family:ui-monospace,Consolas,monospace;
+  }
+  textarea{
+    width:calc(100% - 24px); margin:8px 12px 12px; padding:10px 12px; min-height:74px;
+    background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    border-radius:9px; resize:vertical; font:inherit; font-size:13.5px; line-height:1.5;
+    outline:none; transition:border-color .15s;
+  }
+  textarea:focus{border-color:var(--accent)}
+  textarea::placeholder{color:var(--muted)}
+  .btnrow{display:flex; gap:8px; padding:0 12px 12px; align-items:center}
+  button{
+    font:inherit; font-weight:600; border:none; border-radius:9px; padding:8px 13px;
+    cursor:pointer; transition:filter .12s;
+  }
+  button:hover{filter:brightness(1.1)}
+  .btn-remove{background:transparent; color:var(--muted); border:1px solid var(--border); font-size:12px}
+  .btn-remove:hover{color:var(--green); border-color:var(--green); background:rgba(61,220,151,.08)}
+  .btn-del{background:transparent; color:var(--muted); border:1px solid var(--border); font-size:12px}
+  .btn-del:hover{color:var(--red); border-color:var(--red); background:rgba(255,95,109,.08)}
+  .btn-danger{background:var(--red); color:#fff; border:none; font-size:13px}
+  .btn-danger:hover{filter:brightness(1.1)}
+  .saved-tick{color:var(--green); font-size:12px; margin-left:auto; opacity:0; transition:opacity .3s}
+  .saved-tick.show{opacity:1}
+
+  /* paste hint / drop zone */
+  .pastebar{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:96px; z-index:20;
+    background:var(--panel); border:1px dashed var(--accent); color:var(--muted);
+    padding:10px 18px; border-radius:12px; font-size:13px; display:none; align-items:center; gap:8px;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);
+  }
+  .pastebar.show{display:flex}
+  .pastebar kbd{
+    background:var(--panel2); border:1px solid var(--border); border-bottom-width:3px;
+    border-radius:5px; padding:1px 7px; font-size:12px; color:var(--text);
+  }
+
+  /* handoff bar */
+  .handoff{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    background:linear-gradient(180deg, rgba(15,17,21,.0), rgba(15,17,21,.97) 30%);
+    padding:26px 20px 18px; display:flex; justify-content:center; pointer-events:none;
+  }
+  .handoff-inner{
+    pointer-events:auto; display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
+    background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:12px 18px;
+    box-shadow:0 -6px 30px rgba(0,0,0,.45); max-width:760px;
+  }
+  .btn-primary{
+    background:var(--gold); color:#1b1206; font-size:15px; padding:11px 20px;
+    box-shadow:0 4px 14px rgba(244,201,93,.25);
+  }
+  .btn-primary:disabled{background:var(--panel2); color:var(--muted); box-shadow:none; cursor:not-allowed}
+  .pub-toggle{
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    font-size:12.5px; color:var(--muted); user-select:none;
+    padding:6px 12px; border:1px solid var(--border); border-radius:999px; background:var(--panel2);
+  }
+  .pub-toggle:hover{color:var(--text); border-color:var(--accent-h)}
+  .pub-toggle input{accent-color:var(--gold); cursor:pointer; width:14px; height:14px}
+  .count{font-size:13px; color:var(--muted)}
+  .count b{color:var(--text)}
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.78);
+    display:none; align-items:center; justify-content:center; padding:20px;
+  }
+  .overlay.open{display:flex}
+  .modal{
+    background:var(--panel); border:1px solid var(--border); border-radius:16px;
+    width:100%; max-width:880px; max-height:calc(100vh - 40px); overflow-y:auto; padding:22px;
+  }
+  .modal img{width:100%; max-height:70vh; object-fit:contain; background:#000; border-radius:10px}
+  .modal h3{margin-top:0}
+  .modal .close{float:right}
+  .modal .desc-preview{color:var(--muted); font-size:13px; margin-top:10px}
+
+  .toast{
+    position:fixed; top:70px; right:16px; z-index:60; background:var(--panel2);
+    border:1px solid var(--border); border-left:4px solid var(--green);
+    padding:12px 16px; border-radius:10px; font-size:13.5px; box-shadow:0 8px 30px rgba(0,0,0,.5);
+    max-width:360px; transition:opacity .3s, transform .3s; opacity:0; transform:translateY(-8px);
+  }
+  .toast.show{opacity:1; transform:translateY(0)}
+  .toast.error{border-left-color:var(--red)}
+
+  @media (max-width:600px){
+    main{padding:14px 12px 180px}
+    .grid{grid-template-columns:1fr; gap:14px}
+    .handoff-inner{padding:10px 12px; width:100%}
+    .btn-primary{flex:1}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <img src="/logo.png" alt="Erol" class="brand-logo" height="26">
+  </div>
+  <div class="sub">Screenshot issue logger</div>
+  <div class="spacer"></div>
+  <button class="btn-clear" id="clear-btn" title="Remove every card from Erol (files on disk are untouched)" style="display:none">✕ Clear all</button>
+  <div class="pill" id="folder-pill" title="">Watching…</div>
+  <div class="pill" id="poll-pill" title="Last refresh">—</div>
+</header>
+
+<main>
+  <div class="empty" id="empty" style="display:none">
+    <div class="big">🖼️</div>
+    <div><b>No screenshots yet.</b></div>
+    <div style="margin-top:6px">Press <kbd>Ctrl</kbd>+<kbd>V</kbd> anywhere here to paste a screenshot. The hosted version cannot automatically read your computer's screenshot folder.</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- paste hint -->
+<div class="pastebar" id="pastebar">
+  <span>📋</span><span>Paste an image with</span><kbd>Ctrl</kbd>+<kbd>V</kbd>
+</div>
+
+<!-- handoff bar -->
+<div class="handoff">
+  <div class="handoff-inner">
+    <span class="count"><b id="count-n">0</b> described / <b id="count-total">0</b> total</span>
+    <label class="pub-toggle" title="Add a line to the handoff authorizing the AI to publish/deploy the changes, so it isn't blocked at the deploy step.">
+      <input type="checkbox" id="publish-check" checked>
+      <span>Authorize publishing changes</span>
+    </label>
+    <button class="btn-primary" id="handoff-btn">→ Hand off to AI</button>
+  </div>
+</div>
+
+<!-- zoom modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="btn-remove close" id="modal-close">✕</button>
+    <h3 id="modal-title">Image</h3>
+    <img id="modal-img" alt="large preview">
+    <div class="desc-preview" id="modal-desc"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- in-app confirm dialog -->
+<div class="overlay" id="cf-overlay">
+  <div class="modal cf-modal">
+    <h3 id="cf-title">Are you sure?</h3>
+    <div class="cf-msg" id="cf-msg" style="white-space:pre-wrap; color:var(--muted); font-size:13.5px; margin:0 0 18px"></div>
+    <div class="cf-actions" style="display:flex; gap:10px; justify-content:flex-end">
+      <button class="btn-remove" id="cf-cancel" style="padding:9px 16px">Cancel</button>
+      <button class="btn-danger" id="cf-ok" style="padding:9px 16px">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- handoff-result dialog -->
+<div class="overlay" id="ho-overlay">
+  <div class="modal cf-modal" style="max-width:560px">
+    <h3>✅ Handoff ready</h3>
+    <div class="ho-body" style="color:var(--muted); font-size:13.5px; line-height:1.6">
+      <p id="ho-intro" style="margin:0 0 10px">Your handoff is ready.</p>
+      <div style="text-align:center; margin:14px 0">
+        <a href="#" id="ho-folder-link" style="color:var(--gold); font-weight:700; font-size:15px; text-decoration:underline; cursor:pointer">📁 handoff 2026-07-31 13-09-13</a>
+      </div>
+      <p style="margin:0; font-size:12.5px">Tip: the hosted version keeps pasted screenshots safely in your Erol library.</p>
+    </div>
+    <div class="cf-actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px">
+      <button class="btn-remove" id="ho-close" style="padding:9px 16px">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+let items = [];        // [{name,src,url,desc,mtime,is_new}]
+let known = new Set(); // names we've already seen (for NEW badge)
+let pollTimer = null;
+let isHosted = false;
+
+const grid = $("grid"), empty = $("empty");
+
+/* ---------- server calls ---------- */
+async function api(path, opts){
+  const r = await fetch(path, opts);
+  const ct = r.headers.get("Content-Type") || "";
+  const body = ct.includes("json") ? await r.json() : await r.text();
+  if(!r.ok) throw new Error(body?.error || body || ("HTTP " + r.status));
+  return body;
+}
+
+async function loadImages({flashFlag = false} = {}){
+  try{
+    const list = await api("/api/images");
+    const byName = {};
+    for(const it of list){ byName[it.name] = it; }
+
+    // detect NEW: present now, wasn't before, wasn't already rendered
+    const newly = list.filter(it => !known.has(it.name) && !byNameRendered(it.name));
+    for(const it of newly){ it.is_new = true; }
+
+    // update items: keep order stable (newest first), keep descriptions
+    const freshNames = list.map(i => i.name);
+    items = items.filter(it => freshNames.includes(it.name));
+    const existing = new Set(items.map(i => i.name));
+    for(const it of list){
+      if(!existing.has(it.name)){
+        it.desc = it.desc || ($(`d-${cssSafe(it.name)}`)?.value) || it.desc || "";
+        // try restore from a rendered but not-yet-persisted textarea:
+        const ta = $(`d-${cssSafe(it.name)}`);
+        const val = ta ? ta.value : (known.has(it.name) ? "" : "");
+        if(!items.some(x => x.name === it.name)){
+          items.push({name:it.name, src:it.src, url:it.url, desc: val || it.desc || "", is_new: !known.has(it.name)});
+        }
+      }
+    }
+    // refresh desc from server for persisted entries
+    for(const it of list){
+      const idx = items.findIndex(x => x.name === it.name);
+      if(idx >= 0) items[idx].desc = it.desc;
+    }
+    // mark known names now
+    for(const n of freshNames) known.add(n);
+
+    items = items.filter(it => freshNames.includes(it.name));
+    render(items);
+  }catch(e){
+    console.error("loadImages", e);
+    toast("Could not reach the Erol server. Is it running?", true);
+  }
+}
+
+function byNameRendered(name){
+  return !!( $(`t-${cssSafe(name)}`) || $(`d-${cssSafe(name)}`) );
+}
+
+function cssSafe(s){ return s.replace(/[^a-zA-Z0-9_-]/g, "_"); }
+
+/* ---------- render ---------- */
+function render(list){
+  empty.style.display = list.length ? "none" : "block";
+  // show "Clear all" only when there are cards to clear
+  $("clear-btn").style.display = list.length ? "inline-block" : "none";
+  // keep DOM work cheap: rebuild only if new cards appeared or order changed
+  const currentIds = [...grid.children].map(c => c.dataset.key);
+  const wantIds = list.map(i => i.name);
+  if(JSON.stringify(currentIds) === JSON.stringify(wantIds)){
+    updateCounters(list);
+    return;
+  }
+  grid.innerHTML = "";
+  for(const it of list){
+    grid.appendChild(card(it));
+  }
+  updateCounters(list);
+}
+
+function card(it){
+  const safe = cssSafe(it.name);
+  const el = document.createElement("div");
+  const badgeTxt = it.is_new ? "NEW" : (it.src.startsWith("paste:") ? "PASTED" : "SHOT");
+  el.className = "card" + (it.is_new ? " new" : "") + (it.desc?.trim() ? " filled" : "");
+  el.dataset.key = it.name;
+  el.innerHTML = `
+    <span class="badge ${it.is_new ? "new" : (it.src.startsWith("paste:") ? "paste" : "")}">${badgeTxt}</span>
+    <div class="imgwrap" data-img="${escapeAttr(it.src)}">
+      <img loading="lazy" src="${it.url}" alt="${escapeAttr(it.name)}" onerror="this.parentElement.outerHTML='<div style=\\'padding:20px;color:var(--muted);font-size:12px\\'>image unavailable</div>'">
+      <div class="zoom">🔍 click to view</div>
+    </div>
+    <div class="fname">${escapeHtml(it.name)}</div>
+    <textarea id="d-${safe}" placeholder="Describe the issue or improvement… (optional)">${escapeHtml(it.desc || "")}</textarea>
+    <div class="btnrow">
+      <button class="btn-remove" data-rm="${escapeAttr(it.src)}">✓ Set aside</button>
+      <button class="btn-del" data-del="${escapeAttr(it.src)}">🗑 Delete</button>
+      <span class="saved-tick" id="saved-${safe}">saved</span>
+    </div>
+  `;
+  // click image to zoom
+  el.querySelector(".imgwrap").addEventListener("click", () => openModal(it));
+  // set aside / archive (recoverable)
+  el.querySelector('[data-rm]').addEventListener("click", () => archiveOne(it.src));
+  // delete (permanent for Erol; the file on disk is untouched)
+  el.querySelector('[data-del]').addEventListener("click", () => deleteOne(it.src, it.name));
+  // auto-save description on blur
+  const ta = el.querySelector("textarea");
+  ta.addEventListener("blur", () => saveDesc(it.name, ta.value, `saved-${safe}`));
+  // pressed-enter in textarea (without shift) moves to next card description: skip, let shift+enter newline
+  return el;
+}
+
+function updateCounters(list){
+  const total = list.length;
+  const doneCount = list.filter(i => i.desc && i.desc.trim()).length;
+  $("count-total").textContent = total;
+  $("count-n").textContent = doneCount;
+  const btn = $("handoff-btn");
+  btn.disabled = total === 0;
+  btn.textContent = doneCount > 0
+    ? `→ Hand off to AI (${doneCount})`
+    : `→ Hand off to AI`;
+}
+
+/* ---------- persistence ---------- */
+async function saveDesc(name, text, tickId){
+  try{
+    await api("/api/desc", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({filename:name, text})
+    });
+    const it = items.find(x => x.name === name);
+    if(it) it.desc = text;
+    // update filled styling + counter
+    const cardEl = document.querySelector(`.card[data-key="${CSS.escape(name)}"]`);
+    if(cardEl) cardEl.classList.toggle("filled", !!(text && text.trim()));
+    if(tickId){
+      const t = $(tickId); if(t){ t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 1200); }
+    }
+    updateCounters(items);
+  }catch(e){
+    toast("Failed to save description.", true);
+  }
+}
+
+async function archiveOne(src){
+  // remove a card from the screen and mark it archived server-side
+  try{
+    await api("/api/actions", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({action:"archive", srcs:[src]})
+    });
+    items = items.filter(i => i.src !== src);
+    known.delete(src.split(":")[1]);
+    render(items);
+    toast("Moved aside. It won't show again. (Restart watcher to reset.)");
+  }catch(e){
+    toast("Could not set aside.", true);
+  }
+}
+
+async function deleteOne(src, name){
+  // Permanent removal from Erol. An in-page confirm avoids accidents. The actual
+  // file in the screenshots/captures folder is NOT touched.
+  const ok = await confirmInApp(
+    `Delete this item from Erol?`,
+    `"${name}"\n\nThis removes the card from Erol only — the screenshot file on disk is NOT deleted.`
+  );
+  if(!ok) return;
+  try{
+    await api("/api/actions", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({action:"delete", srcs:[src]})
+    });
+    items = items.filter(i => i.src !== src);
+    known.delete(src.split(":")[1]);
+    render(items);
+    toast("✕ Deleted from Erol. The file on disk is untouched.");
+  }catch(e){
+    toast("Could not delete.", true);
+  }
+}
+
+/* In-page confirmation (avoids native confirm(), which blocks automation and
+   looks clunky). Returns a Promise<boolean>. */
+function confirmInApp(title, message){
+  return new Promise(resolve => {
+    $("cf-title").textContent = title;
+    $("cf-msg").textContent = message;
+    $("cf-overlay").classList.add("open");
+    const done = val => {
+      $("cf-overlay").classList.remove("open");
+      $("cf-ok").onclick = null; $("cf-cancel").onclick = null;
+      resolve(val);
+    };
+    $("cf-ok").onclick = () => done(true);
+    $("cf-cancel").onclick = () => done(false);
+    $("cf-overlay").onclick = e => { if(e.target === $("cf-overlay")) done(false); };
+  });
+}
+
+async function clearAll(){
+  // Remove every currently-shown card so the page starts fresh. The files on
+  // disk are untouched. Requires confirmation since it wipes the whole view.
+  const ok = await confirmInApp(
+    `Clear all?`,
+    `This removes every card (${items.length}) from Erol so you can start again.`
+  );
+  if(!ok) return;
+  try{
+    await api("/api/actions", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({action:"clear_all"})
+    });
+    items = [];
+    known = new Set();
+    render(items);
+    toast("✕ Cleared. The page is fresh — files on disk are untouched.");
+  }catch(e){
+    toast("Could not clear.", true);
+  }
+}
+
+$("clear-btn").addEventListener("click", clearAll);
+
+/* ---------- handoff ---------- */
+$("handoff-btn").addEventListener("click", async () => {
+  const btn = $("handoff-btn"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = "Packaging…";
+  try{
+    const payload = items.map(i => ({src: i.src, desc: i.desc || ""}));
+    const res = await api("/api/export", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({items: payload, publish: $("publish-check").checked})
+    });
+    if(!res.ok) throw new Error(res.error || "export failed");
+    // show confirmation modal with a clickable link to the bundle folder
+    const link = $("ho-folder-link");
+    if(isHosted){
+    link.textContent = "📄 Download handoff summary";
+    const blob = new Blob([res.markdown || ""], {type:"text/markdown;charset=utf-8"});
+    link.href = URL.createObjectURL(blob);
+    link.download = "EROL-HANDOFF.md";
+    }else{
+      $("ho-intro").innerHTML = `Your handoff bundle with <b style="color:var(--text)">${res.count} item(s)</b> was created. Click the folder name to open it in Explorer, then drag the folder into Codex / Claude / Hermes.`;
+      document.querySelector(".ho-body p:last-of-type").textContent = "Tip: drop the whole folder (images + HANDOFF.md) into the editor in one go.";
+      link.textContent = "Handoff folder";
+      link.href = "/api/open?path=" + encodeURIComponent(res.bundle_dir);
+      link.removeAttribute("download");
+    }
+    $("ho-overlay").classList.add("open");
+    // show where it went
+    const pill = $("poll-pill");
+    pill.textContent = "→ " + res.bundle_name;
+  }catch(e){
+    btn.disabled = false; btn.textContent = label;
+    toast("Export failed: " + e.message, true);
+  }
+});
+
+// handoff-result modal: open folder link + close
+$("ho-overlay").addEventListener("click", e => {
+  if(e.target === $("ho-overlay") || e.target.id === "ho-close") $("ho-overlay").classList.remove("open");
+});
+// Clicking the folder link opens Explorer WITHOUT leaving the app (fetch, no nav)
+$("ho-folder-link").addEventListener("click", async e => {
+  if(isHosted) return;
+  e.preventDefault();
+  try{
+    const r = await fetch($("ho-folder-link").getAttribute("href"));
+    const j = await r.json().catch(() => ({}));
+    if(!r.ok || !j.ok) throw new Error(j.error || ("HTTP " + r.status));
+    toast("📂 Opened in Explorer — drag the folder into your AI editor.");
+  }catch(err){
+    toast("Could not open folder: " + err.message, true);
+  }
+});
+document.addEventListener("keydown", e => { if(e.key === "Escape") $("ho-overlay").classList.remove("open"); });
+
+/* ---------- paste fallback ---------- */
+document.addEventListener("paste", ev => {
+  const items_ = [...(ev.clipboardData?.items || [])].filter(i => i.type.startsWith("image/"));
+  if(!items_.length) return;
+  ev.preventDefault();
+  const file = items_[0].getAsFile();
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try{
+      const res = await fetch("/save", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({image: reader.result})
+      });
+      const j = await res.json();
+      if(!j.ok) throw new Error(j.error);
+      toast("📋 Pasted image added.");
+      hidePasteBar();
+      loadImages();
+    }catch(e){ toast("Paste failed: " + e.message, true); }
+  };
+  reader.readAsDataURL(file);
+});
+
+function showPasteBar(){ const p = $("pastebar"); p.classList.add("show"); clearTimeout(p._t); p._t = setTimeout(hidePasteBar, 5000); }
+function hidePasteBar(){ $("pastebar").classList.remove("show"); }
+document.addEventListener("copy", showPasteBar);
+setTimeout(showPasteBar, 1500);
+
+/* ---------- zoom modal ---------- */
+function openModal(it){
+  $("modal-img").src = it.url;
+  $("modal-title").textContent = it.name;
+  $("modal-desc").textContent = it.desc ? (it.desc) : "No description yet.";
+  $("overlay").classList.add("open");
+}
+$("overlay").addEventListener("click", e => { if(e.target === $("overlay") || e.target.id === "modal-close") $("overlay").classList.remove("open"); });
+document.addEventListener("keydown", e => { if(e.key === "Escape") $("overlay").classList.remove("open"); });
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg, isError){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.toggle("error", !!isError);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 4200);
+}
+
+/* ---------- helpers ---------- */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function escapeAttr(s){ return String(s).replace(/"/g, "&quot;"); }
+
+/* ---------- init ---------- */
+async function init(){
+  // Register the service worker for PWA install / offline launch.
+  if("serviceWorker" in navigator){
+    try{ await navigator.serviceWorker.register("/sw.js"); }
+    catch(e){ console.warn("SW register failed:", e); }
+  }
+  try{
+    const st = await api("/api/status");
+    isHosted = !!st.hosted;
+    $("folder-pill").textContent = st.hosted ? "☁️ Hosted: paste/upload" : "📁 " + (st.screenshots_dir || "…");
+    $("folder-pill").title = st.screenshots_dir || "";
+    if(st.watched_exists === false && !st.hosted) toast("Watched folder not found — check path in config.json", true);
+  }catch(e){
+    toast("Could not reach Erol server.", true);
+  }
+  await loadImages();
+  pollTimer = setInterval(() => loadImages(), 2500);
+  // refresh last-poll timer text
+  setInterval(() => { $("poll-pill").textContent = "🔄 " + new Date().toLocaleTimeString(); }, 1000);
+}
+init();
+</script>
+</body>
+</html>

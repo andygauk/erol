@@ -1,0 +1,14 @@
+# Local-only configuration and generated handoff material
+config.json
+servermanager.json
+PERMISSIONS.md
+.openai/
+archive/
+captures/
+export/
+descriptions.json
+.DS_Store
+dist/
+*.tar.gz
+*.log
+node_modules/
