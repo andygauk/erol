@@ -1,15 +1,55 @@
-# Erol
+<div align="center">
 
-**Erol** is a free, open-source visual bug-tracker for people who screenshot issues
-instead of typing them. Take screenshots of whatever's broken or could be improved,
-drop a one-line note under each, and Erol packages them into a single **handoff
-folder** (`HANDOFF.md` + images) you can drop straight into an AI coding agent
-(Codex, Claude, Hermes, …) — or keep for yourself.
+<img src=".github/social-preview.png" alt="Erol — screenshot a bug, describe it, hand it to your AI agent" width="820">
 
-It runs **entirely on your own machine** (no cloud, no account, no data leaves your
-computer). A hosted variant is available for teams who want a shared web drop.
+# erol.
 
-![Erol](logo.png)
+**Screenshot it. Describe it. Hand the whole batch to your AI agent.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-f4c95d.svg)](LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-f4c95d.svg)](server.py)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-0-f4c95d.svg)](#local-quick-start-the-main-path)
+[![Local-first](https://img.shields.io/badge/local--first-no%20cloud%2C%20no%20account-f4c95d.svg)](#why-erol-exists)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-f4c95d.svg)](#contributing)
+
+</div>
+
+---
+
+## Why Erol exists
+
+The old loop: spot something broken → screenshot → paste it into Claude/Codex/Hermes →
+describe it → repeat.
+
+That works for **one** issue. The moment you have five, you're juggling filenames and
+rewriting the same context over and over — and you'll forget which screenshot went with
+which bug.
+
+Erol turns that into: **spot → screenshot → one-line note → one click.** Every issue
+stays on one screen, each screenshot paired with its description, and the whole batch
+leaves as a single handoff folder.
+
+It's **local-first by design** — no cloud, no account, no telemetry. Your screenshots
+never leave your machine.
+
+---
+
+## What you get
+
+A handoff folder containing `HANDOFF.md` plus the images, ready to drag into an agent:
+
+```markdown
+# Handoff — 2026-10-08 11:36
+
+## Screenshot 1.png
+nav overlaps logo on narrow widths
+
+## Screenshot 2.png
+primary button is cut off at 1280px
+```
+
+You can also flip on **publish authorization** in the handoff, so the agent is
+explicitly cleared to ship the fix instead of stalling at the deploy step.
 
 ---
 
@@ -22,9 +62,7 @@ computer). A hosted variant is available for teams who want a shared web drop.
 3. **Hand off.** Click **→ Hand off to AI**. Erol bundles everything — the screenshots
    and a `HANDOFF.md` that lists each image with its description — into a folder named
    after the export time, and opens it in Explorer. Drag the folder into your AI agent
-   (or a colleague, or a ticket) and you're done. The handoff even includes an option to
-   explicitly authorize the agent to **publish** the resulting changes, so it won't get
-   blocked waiting for permission at the deploy step.
+   (or a colleague, or a ticket) and you're done.
 
 Per-card actions: **Set aside** (hide without deleting the file), **Delete** (hide
 permanently, file on disk untouched), **Clear all** (start fresh). It's a PWA too, so
@@ -109,7 +147,25 @@ python server.py            # run locally (127.0.0.1:8000)
 python server.py --host 0.0.0.0 --port 8005   # LAN-reachable
 ```
 
-Active dev port is `8005` when bound to the LAN. PRs welcome.
+Erol is deliberately small: one Python file for the backend and one HTML file for the
+UI. No build step, no framework, no `npm install`. Change something, refresh the page.
+
+---
+
+## Contributing
+
+Issues and PRs are welcome — this is a small tool built to scratch a real itch, and it's
+better if it scratches yours too.
+
+Good first contributions:
+
+- **Other screenshot folders / OSes** — better defaults for macOS and Linux capture dirs.
+- **Handoff formats** — templates for Jira, Linear, GitHub Issues, or plain checklists.
+- **Keyboard-first flow** — a shortcut to focus the next undescribed card.
+- **Accessibility** — Erol is keyboard- and screen-reader-usable, and I want it to stay
+  that way.
+
+Open an issue first for anything large so we can agree on the shape before you write it.
 
 ---
 
